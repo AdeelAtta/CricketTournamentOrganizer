@@ -31,3 +31,24 @@ class TournamentInput(BaseModel):
     time_slots: List[str]
     start_date: Optional[str] = None
     constraints: Optional[Constraints] = Constraints()
+
+class MatchResult(BaseModel):
+    match_id: int
+    winner: str
+
+class KnockoutRoundRequest(BaseModel):
+    tournament_id: str
+    current_round: int
+    match_results: List[MatchResult]
+    venues: List[Venue]
+    time_slots: List[str]
+    start_date: Optional[str] = None
+    constraints: Optional[Constraints] = Constraints()
+
+class KnockoutBracketRequest(BaseModel):
+    tournament_id: str
+    num_teams: int
+    venues: List[Venue]
+    time_slots: List[str]
+    start_date: Optional[str] = None
+    constraints: Optional[Constraints] = Constraints()

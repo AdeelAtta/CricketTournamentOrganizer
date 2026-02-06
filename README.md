@@ -46,7 +46,7 @@ POST `/schedule`
     {"name": "Stadium 2"},
     {"name": "Stadium 3"}
   ],
-  "format": "round_robin",
+  "format": "round_robin", // "round_robin" //"league" // "knockout"
   "time_slots": ["Morning"],
   "start_date": "2026-02-10",
   "constraints": {
