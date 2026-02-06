@@ -33,11 +33,37 @@ http://127.0.0.1:8000/docs
 POST `/schedule`
 ```json
 {
-  "teams": [{"name": "A"}, {"name": "B"}, {"name": "C"}, {"name": "D"}],
-  "venues": [{"name": "Stadium 1"}, {"name": "Stadium 2"}],
+  "teams": [
+    {"name": "A"},
+    {"name": "B"},
+    {"name": "C"},
+    {"name": "D"},
+    {"name": "E"},
+    {"name": "F"}
+  ],
+  "venues": [
+    {"name": "Stadium 1"},
+    {"name": "Stadium 2"},
+    {"name": "Stadium 3"}
+  ],
   "format": "round_robin",
-  "time_slots": ["Day1-Morning", "Day1-Evening", "Day2-Morning"],
-  "constraints": {"rest_gap": 1, "max_matches_per_day": 1}
+  "time_slots": ["Morning"],
+  "start_date": "2026-02-10",
+  "constraints": {
+    "rest_gap": 1,
+    "max_matches_per_day": 3,
+    "max_matches_per_team_per_day": 1,
+    "min_matches_gap_same_team": 1,
+    "min_venue_rest_gap": 1,
+    "max_matches_per_venue": 5,
+    "balance_venue_usage": true,
+    "avoid_same_matchup_gap": 4,
+    "blackout_dates": ["2026-02-13","2026-02-14","2026-02-15","2026-02-16","2026-02-17"],
+    "balance_matches_per_team": true,
+    "prefer_even_distribution": true,
+    // "max_concurrent_matches": 3,
+    "priority_matches": [["A", "C"], ["C", "D"]]
+  }
 }
 ```
 
