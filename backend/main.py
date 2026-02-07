@@ -1,9 +1,19 @@
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from models import TournamentInput, KnockoutRoundRequest, KnockoutBracketRequest
 from scheduler import generate_schedule, generate_knockout_next_round, generate_knockout_bracket
 
 app = FastAPI(title="AI Cricket Tournament Scheduler")
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins (adjust for production)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods including OPTIONS
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def root():
