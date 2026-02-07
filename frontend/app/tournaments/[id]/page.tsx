@@ -3,14 +3,16 @@
 import { useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTournamentsStore } from '@/store/tournaments';
+import { useHasHydrated } from '@/lib/hooks/useHasHydrated';
 import TournamentForm from '@/components/TournamentForm';
 import { Match, BracketRound } from '@/types/tournament';
 
 export default function TournamentDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const hasHydrated = useHasHydrated();
   const tournamentId = params.id as string;
-  
+
   const { getTournament, saveSchedule, saveBracket } = useTournamentsStore();
   const tournament = getTournament(tournamentId);
 
@@ -26,6 +28,11 @@ export default function TournamentDetailPage() {
       saveSchedule(tournamentId, data.schedule, data.format, data.rawOutput);
     }
   }, [tournamentId, saveSchedule, saveBracket]);
+
+  // Prevent hydration mismatch by rendering a neutral state until client-ready
+  if (!hasHydrated) {
+    return <main className="min-h-screen bg-[#0a0a0a]" />;
+  }
 
   if (!tournament) {
     return (
@@ -68,25 +75,24 @@ export default function TournamentDetailPage() {
               <p className="text-sm text-slate-500 truncate">{tournament.description}</p>
             )}
           </div>
-          <span className={`px-2.5 py-1 rounded text-xs font-medium ${
-            tournament.status === 'draft' ? 'bg-amber-500/10 text-amber-500' :
+          <span className={`px-2.5 py-1 rounded text-xs font-medium ${tournament.status === 'draft' ? 'bg-amber-500/10 text-amber-500' :
             tournament.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400' :
-            tournament.status === 'in_progress' ? 'bg-emerald-500/10 text-emerald-400' :
-            'bg-slate-500/10 text-slate-400'
-          }`}>
+              tournament.status === 'in_progress' ? 'bg-emerald-500/10 text-emerald-400' :
+                'bg-slate-500/10 text-slate-400'
+            }`}>
             {tournament.status === 'in_progress' ? 'In Progress' : tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
           </span>
         </div>
       </div>
 
       {/* Existing Tournament Form */}
-      <TournamentForm 
+      <TournamentForm
         tournamentId={tournamentId}
         initialSchedule={tournament.schedule}
         initialBracket={tournament.bracket}
         initialRawOutput={tournament.rawOutput}
         initialFormat={tournament.format}
-        onScheduleGenerated={handleScheduleGenerated} 
+        onScheduleGenerated={handleScheduleGenerated}
       />
     </main>
   );

@@ -23,8 +23,11 @@ interface TournamentFormProps {
 }
 
 export default function TournamentForm({ tournamentId, initialSchedule, initialBracket, initialRawOutput, initialFormat, onScheduleGenerated }: TournamentFormProps) {
-  const { setTournamentInput, setScheduledMatches, setBracketData, setCurrentRound, setLoading, setError, setSuccess, setRawOutput, scheduledMatches, bracketData, isLoading, error, success, rawOutput, reset } =
-    useTournamentStore();
+  const {
+    setTournamentInput, setScheduledMatches, setBracketData, setCurrentRound,
+    setLoading, setError, setSuccess, setRawOutput, scheduledMatches,
+    bracketData, isLoading, error, success, rawOutput, reset
+  } = useTournamentStore();
 
   // Load tournament-specific data when tournament changes
   useEffect(() => {
@@ -121,7 +124,7 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (isFormInvalid) {
       setError('Please add at least 2 teams, 1 venue, 1 time slot and a start date');
       return;
@@ -211,7 +214,7 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
     setPreferEvenDistribution(true);
     setBlackoutDates([]);
     setBlackoutInput('');
-    
+
     // Clear Store
     setScheduledMatches([]);
     setBracketData([]);
@@ -227,7 +230,7 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
       tomorrow.setDate(tomorrow.getDate() + 1);
       alert(tomorrow.toISOString().split('T')[0]);
       setStartDate(tomorrow.toISOString().split('T')[0]);
-      setTeams(['Lahore Qalandars', 'Karachi Kings', 'Islamabad United', 'Peshawar Zalmi', 'Multan Sultans', 'Quetta Gladiators','Hyderabad','Sialkot']);
+      setTeams(['Lahore Qalandars', 'Karachi Kings', 'Islamabad United', 'Peshawar Zalmi', 'Multan Sultans', 'Quetta Gladiators', 'Hyderabad', 'Sialkot']);
       setVenues(['Gaddafi Stadium', 'National Bank Arena', 'Multan Cricket Stadium', 'Pindi Cricket Stadium']);
       setTimeSlots(['Afternoon (2 PM)', 'Evening Blast (7 PM)']);
       setBlackoutDates([]);
@@ -250,16 +253,16 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
               <p className="text-sm text-slate-500">Configure teams, venues, and constraints</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={clearForm}
               className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-white transition"
             >
               Reset
             </button>
-            <button 
+            <button
               form="tournament-form"
               type="submit"
               disabled={isLoading}
@@ -288,18 +291,17 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
                     <button
                       type="button"
                       onClick={() => setFormat(fmt)}
-                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                        format === fmt
-                          ? 'bg-white text-black'
-                          : 'text-slate-500 hover:text-white'
-                      }`}
+                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${format === fmt
+                        ? 'bg-white text-black'
+                        : 'text-slate-500 hover:text-white'
+                        }`}
                     >
                       {fmt === 'round_robin' ? 'League' : 'Knockout'}
                     </button>
                     {/* Tooltip */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#1a1a1a] border border-slate-800 text-white text-[10px] rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 pointer-events-none shadow-xl text-center">
-                      {fmt === 'round_robin' 
-                        ? 'Every team plays every other team once. Points table determines the rank.' 
+                      {fmt === 'round_robin'
+                        ? 'Every team plays every other team once. Points table determines the rank.'
                         : 'Single elimination bracket. Winners advance, losers go home until the Final.'}
                       <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[#1a1a1a]" />
                     </div>
@@ -324,11 +326,10 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
               <button
                 type="button"
                 onClick={() => setShowSettings(!showSettings)}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg border transition-all text-sm font-medium ${
-                  showSettings 
-                    ? 'bg-white text-black border-white' 
-                    : 'bg-transparent border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                }`}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg border transition-all text-sm font-medium ${showSettings
+                  ? 'bg-white text-black border-white'
+                  : 'bg-transparent border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                  }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -344,7 +345,7 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
                     <h3 className="text-base font-semibold text-white">Scheduling Settings</h3>
                     <button onClick={() => setShowSettings(false)} className="text-slate-500 hover:text-white">×</button>
                   </div>
-                  
+
                   <div className="space-y-6 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
                     <div className="grid grid-cols-1 gap-6">
                       <div>
@@ -490,9 +491,9 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
 
             <div className="hidden lg:flex items-center gap-3">
               <span className="text-xs text-slate-600">Preset:</span>
-              <button 
+              <button
                 type="button"
-                onClick={() => applyPreset('psl_league')} 
+                onClick={() => applyPreset('psl_league')}
                 className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition flex items-center gap-2"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -532,8 +533,8 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
                   placeholder="Team name..."
                   className="w-full bg-[#0a0a0a] border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-slate-600 transition"
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={addTeam}
                   className="absolute right-2 top-1.5 bottom-1.5 px-3 bg-white hover:bg-slate-200 text-black rounded-md text-xs font-medium transition"
                 >
@@ -572,8 +573,8 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
                   placeholder="Venue name..."
                   className="w-full bg-[#0a0a0a] border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-slate-600 transition"
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={addVenue}
                   className="absolute right-2 top-1.5 bottom-1.5 px-3 bg-white hover:bg-slate-200 text-black rounded-md text-xs font-medium transition"
                 >
@@ -602,7 +603,7 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
                   {timeSlots.length}
                 </span>
               </div>
-                
+
               <div className="relative mb-4">
                 <input
                   type="text"
@@ -612,8 +613,8 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
                   placeholder="e.g., Morning"
                   className="w-full bg-[#0a0a0a] border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-slate-600 transition"
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={addTimeSlot}
                   className="absolute right-2 top-1.5 bottom-1.5 px-3 bg-white hover:bg-slate-200 text-black rounded-md text-xs font-medium transition"
                 >
@@ -666,7 +667,7 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
               <h2 className="text-xl font-semibold text-white">Generated Schedule</h2>
               <div className="h-px flex-1 bg-slate-800" />
             </div>
-            
+
             {format === 'round_robin' ? (
               <RoundRobinCard format={format} rawOutput={rawOutput} status={{ isLoading, error, success }} />
             ) : format === 'league' ? (

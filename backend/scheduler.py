@@ -1,9 +1,9 @@
 
 from itertools import combinations
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Set, Tuple, Optional
 from collections import defaultdict
 from datetime import datetime, timedelta
-from models import TournamentInput, KnockoutRoundRequest, MatchResult, KnockoutBracketRequest
+from models import TournamentInput, KnockoutRoundRequest, MatchResult, KnockoutBracketRequest, Constraints
 
 def generate_matches(data: TournamentInput) -> List[Dict]:
     teams = [team.name for team in data.teams]
@@ -205,227 +205,220 @@ def generate_knockout_next_round(request: KnockoutRoundRequest) -> Dict:
     }
 
 
+def is_team_available(team: str, calendar_day: int, slot_index: int, state: Dict, constraints: Dict) -> bool:
+    """Check if a team can play in a specific slot and day."""
+    if team == "BYE":
+        return True
+    
+    # 1. Check if already playing in this specific slot (global slot_index)
+    if team in state['slots'][slot_index]['teams']:
+        return False
+        
+    # 2. Check matches per team per day
+    day_matches = state['team_matches_per_day'][team].get(calendar_day, 0)
+    if day_matches >= constraints['max_matches_per_team_per_day']:
+        return False
+        
+    # 3. Check rest gap (in calendar days)
+    last_day = state['team_last_match_day'].get(team)
+    if last_day is not None:
+        if calendar_day - last_day < constraints['rest_gap'] + 1:
+            return False
+            
+    return True
+
+def find_best_venue(match: Dict, calendar_day: int, slot_index: int, state: Dict, constraints: Dict, all_venues: List[str]) -> Optional[str]:
+    """Find the best venue according to constraints and usage balance."""
+    venues_used_in_slot = state['slots'][slot_index]['venues']
+    
+    # Filter venues by availability and constraints
+    available_venues = []
+    for v in all_venues:
+        # Venue already used in this specific time slot
+        if v in venues_used_in_slot:
+            continue
+            
+        # Max matches per venue constraint
+        if constraints['max_matches_per_venue'] and state['venue_total_matches'][v] >= constraints['max_matches_per_venue']:
+            continue
+            
+        # Venue rest gap constraint
+        last_used = state['venue_last_used'].get(v)
+        if last_used is not None:
+            if calendar_day - last_used < constraints['min_venue_rest_gap'] + 1:
+                continue
+                
+        available_venues.append(v)
+        
+    if not available_venues:
+        return None
+        
+    if constraints['balance_venue_usage']:
+        # Sort by total usage, then by last used day (to keep it rotating)
+        return min(available_venues, key=lambda v: (state['venue_total_matches'][v], state['venue_last_used'].get(v, -1)))
+    else:
+        # Just pick the first available one (rotation is handled by list order)
+        return available_venues[0]
+
 def generate_schedule(data: TournamentInput) -> Dict:
     matches = generate_matches(data)
-    constraints = data.constraints if data.constraints else {}
+    constraints_obj = data.constraints if data.constraints else Constraints()
     
-    # Extract constraint values with defaults
-    rest_gap = constraints.rest_gap if hasattr(constraints, 'rest_gap') else 1
-    max_matches_per_day = constraints.max_matches_per_day if hasattr(constraints, 'max_matches_per_day') else None
-    max_matches_per_team_per_day = constraints.max_matches_per_team_per_day if hasattr(constraints, 'max_matches_per_team_per_day') else 1
-    min_venue_rest_gap = constraints.min_venue_rest_gap if hasattr(constraints, 'min_venue_rest_gap') else 0
-    max_matches_per_venue = constraints.max_matches_per_venue if hasattr(constraints, 'max_matches_per_venue') else None
-    balance_venue_usage = constraints.balance_venue_usage if hasattr(constraints, 'balance_venue_usage') else True
-    avoid_same_matchup_gap = constraints.avoid_same_matchup_gap if hasattr(constraints, 'avoid_same_matchup_gap') else 4
-    blackout_dates = constraints.blackout_dates if hasattr(constraints, 'blackout_dates') else []
-    max_concurrent_matches = constraints.max_concurrent_matches if hasattr(constraints, 'max_concurrent_matches') else 3
-    priority_matches_list = constraints.priority_matches if hasattr(constraints, 'priority_matches') else []
+    # Map constraints for easy access
+    constraints = {
+        'rest_gap': constraints_obj.rest_gap,
+        'max_matches_per_day': constraints_obj.max_matches_per_day,
+        'max_matches_per_team_per_day': constraints_obj.max_matches_per_team_per_day,
+        'min_venue_rest_gap': constraints_obj.min_venue_rest_gap,
+        'max_matches_per_venue': constraints_obj.max_matches_per_venue,
+        'balance_venue_usage': constraints_obj.balance_venue_usage,
+        'avoid_same_matchup_gap': constraints_obj.avoid_same_matchup_gap,
+        'blackout_dates': set(constraints_obj.blackout_dates),
+        'max_concurrent_matches': constraints_obj.max_concurrent_matches,
+        'priority_matches': constraints_obj.priority_matches
+    }
     
-    # Prioritize matches if specified
-    if priority_matches_list:
-        matches = prioritize_matches(matches, priority_matches_list)
+    if constraints['priority_matches']:
+        matches = prioritize_matches(matches, constraints['priority_matches'])
     
-    schedule = []
+    all_venues = [v.name for v in data.venues]
+    time_slots = data.time_slots if data.time_slots else ["Default Slot"]
+    num_slots_per_day = len(time_slots)
     
-    # Tracking structures
-    team_last_match_day = {}  # Last day each team played
-    team_matches_per_day = defaultdict(int)  # Matches per team per day
-    teams_playing_today = {"day": -1, "set": set()}  # Teams playing on current day
-    venue_last_used = defaultdict(lambda: -float('inf'))  # Last day each venue was used
-    venue_matches_count = defaultdict(int)  # Total matches at each venue
-    matchup_last_played = defaultdict(lambda: -float('inf'))  # Last day specific matchup played
+    # Tracking State
+    state = {
+        'team_last_match_day': {}, # team -> calendar_day
+        'team_matches_per_day': defaultdict(dict), # team -> {calendar_day: count}
+        'venue_last_used': {}, # venue -> calendar_day
+        'venue_total_matches': defaultdict(int), # venue -> count
+        'matchup_last_played': {}, # (team1, team2) -> calendar_day
+        'slots': defaultdict(lambda: {'matches': [], 'venues': set(), 'teams': set()}), # slot_index -> data
+        'day_matches_count': defaultdict(int) # calendar_day -> count
+    }
     
-    day_index = 0
-    venue_index = 0
-    match_queue = list(matches)
-    
-    all_venues = [venue.name for venue in data.venues]
-    
-    # Parse start date if provided
+    # Parse start date
     start_date = None
     if data.start_date:
         try:
             start_date = datetime.strptime(data.start_date, "%Y-%m-%d")
         except:
-            start_date = None
+            pass
+
+    match_queue = list(matches)
+    slot_index = 0
+    max_iterations = len(matches) * 20 # Safety break
     
-    while match_queue:
-        # Generate the time slot for the current day
-        if day_index < len(data.time_slots):
-            base_slot = data.time_slots[day_index]
-        else:
-            base_slot = data.time_slots[0] if data.time_slots else "Morning"
+    while match_queue and slot_index < max_iterations:
+        calendar_day = slot_index // num_slots_per_day
+        slot_in_day = slot_index % num_slots_per_day
         
-        # Create slot with actual date if start_date provided
+        # Determine slot name and date
         current_date_str = None
         if start_date:
-            current_date = start_date + timedelta(days=day_index)
+            current_date = start_date + timedelta(days=calendar_day)
             current_date_str = current_date.strftime('%Y-%m-%d')
-            current_slot = f"{current_date_str} - {base_slot}"
+            slot_name = f"{current_date_str} - {time_slots[slot_in_day]}"
         else:
-            if day_index < len(data.time_slots):
-                current_slot = base_slot
-            else:
-                if "-" in base_slot:
-                    period = base_slot.split("-")[1]
-                    current_slot = f"Day{day_index + 1}-{period}"
-                else:
-                    current_slot = f"Day{day_index + 1}"
-        
-        # Skip blackout dates (check both full slot and date only)
-        is_blackout = current_slot in blackout_dates
-        if current_date_str and current_date_str in blackout_dates:
-            is_blackout = True
-        
-        if is_blackout:
-            day_index += 1
+            slot_name = f"Day {calendar_day + 1} - {time_slots[slot_in_day]}"
+            
+        # Check blackout dates
+        if current_date_str in constraints['blackout_dates'] or slot_name in constraints['blackout_dates']:
+            # Skip all slots for this day if the date is blacked out
+            # or just skip this specific slot if it's named specifically
+            slot_index += 1
             continue
-        
-        # Reset daily counters
-        teams_in_current_day = set()
-        day_matches = []
-        remaining_matches = []
-        venues_used_today = defaultdict(int)
-        
-        # Try to schedule matches for current day
+            
+        # Try to fit as many matches as possible in this slot
+        matches_to_keep = []
         for match in match_queue:
-            team1, team2 = match['team1'], match['team2']
+            t1, t2 = match['team1'], match['team2']
+            matchup_key = tuple(sorted([t1, t2]))
             
-            # Stop if max matches per day reached
-            if max_matches_per_day and len(day_matches) >= max_matches_per_day:
-                remaining_matches.append(match)
+            # 1. Global Slot Constraints
+            if len(state['slots'][slot_index]['matches']) >= constraints['max_concurrent_matches']:
+                matches_to_keep.append(match)
                 continue
-            
-            # Stop if max concurrent matches (venues) reached
-            if len(venues_used_today) >= max_concurrent_matches:
-                remaining_matches.append(match)
+                
+            # 2. Daily Match Limit
+            if constraints['max_matches_per_day'] and state['day_matches_count'][calendar_day] >= constraints['max_matches_per_day']:
+                matches_to_keep.append(match)
                 continue
-            
-            can_schedule = True
-            
-            # 1. Check if team already playing on current day
-            if team1 in teams_in_current_day or team2 in teams_in_current_day:
-                can_schedule = False
-            
-            # 2. Check max matches per team per day
-            if team1 in team_matches_per_day:
-                if team_matches_per_day[team1] >= max_matches_per_team_per_day:
-                    can_schedule = False
-            if team2 in team_matches_per_day and team2 != "BYE":
-                if team_matches_per_day[team2] >= max_matches_per_team_per_day:
-                    can_schedule = False
-            
-            # 3. Check rest gap constraint
-            if team1 in team_last_match_day:
-                if day_index - team_last_match_day[team1] < rest_gap + 1:
-                    can_schedule = False
-            
-            if team2 in team_last_match_day and team2 != "BYE":
-                if day_index - team_last_match_day[team2] < rest_gap + 1:
-                    can_schedule = False
-            
-            # 4. Check avoid same matchup gap
-            matchup_key = tuple(sorted([team1, team2]))
-            if matchup_key in matchup_last_played:
-                if day_index - matchup_last_played[matchup_key] < avoid_same_matchup_gap + 1:
-                    can_schedule = False
-            
-            if can_schedule:
-                # Select best venue
-                best_venue = None
                 
-                if balance_venue_usage:
-                    # Use venue with lowest usage
-                    min_usage = float('inf')
-                    for v in all_venues:
-                        current_usage = venue_matches_count[v] + venues_used_today[v]
-                        if current_usage < min_usage:
-                            min_usage = current_usage
-                            best_venue = v
-                else:
-                    # Use next venue in rotation
-                    best_venue = all_venues[venue_index % len(all_venues)]
+            # 3. Team Availability
+            if not is_team_available(t1, calendar_day, slot_index, state, constraints) or \
+               not is_team_available(t2, calendar_day, slot_index, state, constraints):
+                matches_to_keep.append(match)
+                continue
                 
-                # Check venue constraints
-                if max_matches_per_venue and venue_matches_count[best_venue] >= max_matches_per_venue:
-                    can_schedule = False
+            # 4. Matchup Gap Constraint
+            last_matchup = state['matchup_last_played'].get(matchup_key)
+            if last_matchup is not None:
+                if calendar_day - last_matchup < constraints['avoid_same_matchup_gap'] + 1:
+                    matches_to_keep.append(match)
+                    continue
+                    
+            # 5. Venue Selection
+            venue = find_best_venue(match, calendar_day, slot_index, state, constraints, all_venues)
+            if not venue:
+                matches_to_keep.append(match)
+                continue
                 
-                if day_index - venue_last_used[best_venue] < min_venue_rest_gap + 1:
-                    can_schedule = False
-                
-                if can_schedule:
-                    day_matches.append(match)
-                    venues_used_today[best_venue] += 1
-                    teams_in_current_day.add(team1)
-                    if team2 != "BYE":
-                        teams_in_current_day.add(team2)
-                    
-                    team_matches_per_day[team1] += 1
-                    if team2 != "BYE":
-                        team_matches_per_day[team2] += 1
-                    
-                    team_last_match_day[team1] = day_index
-                    if team2 != "BYE":
-                        team_last_match_day[team2] = day_index
-                    
-                    matchup_last_played[matchup_key] = day_index
-                    venue_last_used[best_venue] = day_index
-                    venue_matches_count[best_venue] += 1
-                    
-                    match['scheduled_venue'] = best_venue
-                else:
-                    remaining_matches.append(match)
-            else:
-                remaining_matches.append(match)
-        
-        # Schedule the matches for this day
-        for match in day_matches:
+            # SUCCESS - Schedule the match
             schedule_item = {
-                "match": f"{match['team1']} vs {match['team2']}",
-                "time_slot": current_slot,
-                "venue": match.get('scheduled_venue', all_venues[venue_index % len(all_venues)])
+                "match": f"{t1} vs {t2}",
+                "team1": t1,
+                "team2": t2,
+                "time_slot": slot_name,
+                "venue": venue
             }
+            if 'match_id' in match: schedule_item["match_id"] = match['match_id']
+            if 'round' in match: schedule_item["round"] = match['round']
             
-            # Add match_id and round if they exist (knockout format)
-            if 'match_id' in match:
-                schedule_item["match_id"] = match['match_id']
-            if 'round' in match:
-                schedule_item["round"] = match['round']
+            # Update State
+            state['slots'][slot_index]['matches'].append(schedule_item)
+            state['slots'][slot_index]['teams'].add(t1)
+            state['slots'][slot_index]['teams'].add(t2)
+            state['slots'][slot_index]['venues'].add(venue)
             
-            schedule.append(schedule_item)
-            venue_index += 1
+            state['team_last_match_day'][t1] = calendar_day
+            state['team_last_match_day'][t2] = calendar_day
+            state['team_matches_per_day'][t1][calendar_day] = state['team_matches_per_day'][t1].get(calendar_day, 0) + 1
+            state['team_matches_per_day'][t2][calendar_day] = state['team_matches_per_day'][t2].get(calendar_day, 0) + 1
+            
+            state['venue_last_used'][venue] = calendar_day
+            state['venue_total_matches'][venue] += 1
+            state['day_matches_count'][calendar_day] += 1
+            state['matchup_last_played'][matchup_key] = calendar_day
+            
+        match_queue = matches_to_keep
+        slot_index += 1
+
+    # Flatten schedule
+    schedule = []
+    for i in range(slot_index):
+        schedule.extend(state['slots'][i].get('matches', []))
         
-        # Reset daily counters for next day
-        if day_index + 1 < len(data.time_slots) or remaining_matches or day_matches:
-            team_matches_per_day.clear()
-        
-        match_queue = remaining_matches
-        
-        # Move to next day
-        if day_matches or match_queue:
-            day_index += 1
-        
-        # Prevent infinite loops
-        if day_index > len(matches) * 10:
-            # Fallback: schedule remaining matches spread across days
-            fallback_day = day_index
-            for match in match_queue:
-                # Generate proper date for fallback
-                if start_date:
-                    fallback_date = start_date + timedelta(days=fallback_day)
-                    slot_idx = fallback_day % len(data.time_slots) if data.time_slots else 0
-                    fallback_slot = f"{fallback_date.strftime('%Y-%m-%d')} - {data.time_slots[slot_idx] if data.time_slots else 'TBD'}"
-                else:
-                    fallback_slot = f"Day {fallback_day + 1}"
+    # Fallback for unscheduled matches
+    if match_queue:
+        fallback_day = (slot_index // num_slots_per_day) + 1
+        for match in match_queue:
+            t1, t2 = match['team1'], match['team2']
+            if start_date:
+                curr_date = start_date + timedelta(days=fallback_day)
+                slot_name = f"{curr_date.strftime('%Y-%m-%d')} - {time_slots[0]}"
+            else:
+                slot_name = f"Day {fallback_day + 1} - {time_slots[0]}"
                 
-                schedule.append({
-                    "match": f"{match['team1']} vs {match['team2']}",
-                    "time_slot": fallback_slot,
-                    "venue": all_venues[venue_index % len(all_venues)]
-                })
-                venue_index += 1
-                fallback_day += 1  # Spread to different days
-            break
+            schedule.append({
+                "match": f"{t1} vs {t2}",
+                "team1": t1,
+                "team2": t2,
+                "time_slot": slot_name,
+                "venue": all_venues[0] if all_venues else "TBD"
+            })
+            fallback_day += 1
+
+    # For knockout format, also generate the full bracket structure
 
     # For knockout format, also generate the full bracket structure
     if data.format == "knockout":
@@ -458,14 +451,29 @@ def generate_schedule(data: TournamentInput) -> Dict:
                 
                 venue = data.venues[venue_index_bracket].name
                 
+                # Find the actual scheduled match for first round
+                if round_num == 1:
+                    actual_match = next((m for m in schedule if m.get('match_id') == match_id and m.get('round') == 1), None)
+                    match_str = actual_match["match"] if actual_match else "TBD vs TBD"
+                    team1_str = actual_match["team1"] if actual_match else "TBD"
+                    team2_str = actual_match["team2"] if actual_match else "TBD"
+                    time_slot_str = actual_match["time_slot"] if actual_match else time_slot
+                    venue_str = actual_match["venue"] if actual_match else venue
+                else:
+                    match_str = "TBD vs TBD"
+                    team1_str = "TBD"
+                    team2_str = "TBD"
+                    time_slot_str = time_slot
+                    venue_str = venue
+
                 round_bracket.append({
                     "match_id": match_id,
                     "round": round_num,
-                    "match": "TBD vs TBD" if round_num > 1 else schedule[match_id - 1]["match"],
-                    "team1": "TBD" if round_num > 1 else schedule[match_id - 1]["match"].split(" vs ")[0],
-                    "team2": "TBD" if round_num > 1 else schedule[match_id - 1]["match"].split(" vs ")[1],
-                    "time_slot": time_slot,
-                    "venue": venue,
+                    "match": match_str,
+                    "team1": team1_str,
+                    "team2": team2_str,
+                    "time_slot": time_slot_str,
+                    "venue": venue_str,
                     "from_matches": {
                         "winner_1": f"Round {round_num - 1}, Match {(match_id - 1) * 2 + 1}" if round_num > 1 else None,
                         "winner_2": f"Round {round_num - 1}, Match {(match_id - 1) * 2 + 2}" if round_num > 1 else None
@@ -491,225 +499,3 @@ def generate_schedule(data: TournamentInput) -> Dict:
         }
     
     return {"schedule": schedule}
-    matches = generate_matches(data)
-    constraints = data.constraints if data.constraints else {}
-    
-    # Extract constraint values with defaults
-    rest_gap = constraints.rest_gap if hasattr(constraints, 'rest_gap') else 1
-    max_matches_per_day = constraints.max_matches_per_day if hasattr(constraints, 'max_matches_per_day') else None
-    max_matches_per_team_per_day = constraints.max_matches_per_team_per_day if hasattr(constraints, 'max_matches_per_team_per_day') else 1
-    min_venue_rest_gap = constraints.min_venue_rest_gap if hasattr(constraints, 'min_venue_rest_gap') else 0
-    max_matches_per_venue = constraints.max_matches_per_venue if hasattr(constraints, 'max_matches_per_venue') else None
-    balance_venue_usage = constraints.balance_venue_usage if hasattr(constraints, 'balance_venue_usage') else True
-    avoid_same_matchup_gap = constraints.avoid_same_matchup_gap if hasattr(constraints, 'avoid_same_matchup_gap') else 4
-    blackout_dates = constraints.blackout_dates if hasattr(constraints, 'blackout_dates') else []
-    max_concurrent_matches = constraints.max_concurrent_matches if hasattr(constraints, 'max_concurrent_matches') else 3
-    priority_matches_list = constraints.priority_matches if hasattr(constraints, 'priority_matches') else []
-    
-    # Prioritize matches if specified
-    if priority_matches_list:
-        matches = prioritize_matches(matches, priority_matches_list)
-    
-    schedule = []
-    
-    # Tracking structures
-    team_last_match_day = {}  # Last day each team played
-    team_matches_per_day = defaultdict(int)  # Matches per team per day
-    teams_playing_today = {"day": -1, "set": set()}  # Teams playing on current day
-    venue_last_used = defaultdict(lambda: -float('inf'))  # Last day each venue was used
-    venue_matches_count = defaultdict(int)  # Total matches at each venue
-    matchup_last_played = defaultdict(lambda: -float('inf'))  # Last day specific matchup played
-    
-    day_index = 0
-    venue_index = 0
-    match_queue = list(matches)
-    
-    all_venues = [venue.name for venue in data.venues]
-    
-    # Parse start date if provided
-    start_date = None
-    if data.start_date:
-        try:
-            start_date = datetime.strptime(data.start_date, "%Y-%m-%d")
-        except:
-            start_date = None
-    
-    while match_queue:
-        # Generate the time slot for the current day
-        if day_index < len(data.time_slots):
-            base_slot = data.time_slots[day_index]
-        else:
-            base_slot = data.time_slots[0] if data.time_slots else "Morning"
-        
-        # Create slot with actual date if start_date provided
-        current_date_str = None
-        if start_date:
-            current_date = start_date + timedelta(days=day_index)
-            current_date_str = current_date.strftime('%Y-%m-%d')
-            current_slot = f"{current_date_str} - {base_slot}"
-        else:
-            if day_index < len(data.time_slots):
-                current_slot = base_slot
-            else:
-                if "-" in base_slot:
-                    period = base_slot.split("-")[1]
-                    current_slot = f"Day{day_index + 1}-{period}"
-                else:
-                    current_slot = f"Day{day_index + 1}"
-        
-        # Skip blackout dates (check both full slot and date only)
-        is_blackout = current_slot in blackout_dates
-        if current_date_str and current_date_str in blackout_dates:
-            is_blackout = True
-        
-        if is_blackout:
-            day_index += 1
-            continue
-        
-        # Reset daily counters
-        teams_in_current_day = set()
-        day_matches = []
-        remaining_matches = []
-        venues_used_today = defaultdict(int)
-        
-        # Try to schedule matches for current day
-        for match in match_queue:
-            team1, team2 = match['team1'], match['team2']
-            
-            # Stop if max matches per day reached
-            if max_matches_per_day and len(day_matches) >= max_matches_per_day:
-                remaining_matches.append(match)
-                continue
-            
-            # Stop if max concurrent matches (venues) reached
-            if len(venues_used_today) >= max_concurrent_matches:
-                remaining_matches.append(match)
-                continue
-            
-            can_schedule = True
-            
-            # 1. Check if team already playing on current day
-            if team1 in teams_in_current_day or team2 in teams_in_current_day:
-                can_schedule = False
-            
-            # 2. Check max matches per team per day
-            if team1 in team_matches_per_day:
-                if team_matches_per_day[team1] >= max_matches_per_team_per_day:
-                    can_schedule = False
-            if team2 in team_matches_per_day and team2 != "BYE":
-                if team_matches_per_day[team2] >= max_matches_per_team_per_day:
-                    can_schedule = False
-            
-            # 3. Check rest gap constraint
-            if team1 in team_last_match_day:
-                if day_index - team_last_match_day[team1] < rest_gap + 1:
-                    can_schedule = False
-            
-            if team2 in team_last_match_day and team2 != "BYE":
-                if day_index - team_last_match_day[team2] < rest_gap + 1:
-                    can_schedule = False
-            
-            # 4. Check avoid same matchup gap
-            matchup_key = tuple(sorted([team1, team2]))
-            if matchup_key in matchup_last_played:
-                if day_index - matchup_last_played[matchup_key] < avoid_same_matchup_gap + 1:
-                    can_schedule = False
-            
-            if can_schedule:
-                # Select best venue
-                best_venue = None
-                
-                if balance_venue_usage:
-                    # Use venue with lowest usage
-                    min_usage = float('inf')
-                    for v in all_venues:
-                        current_usage = venue_matches_count[v] + venues_used_today[v]
-                        if current_usage < min_usage:
-                            min_usage = current_usage
-                            best_venue = v
-                else:
-                    # Use next venue in rotation
-                    best_venue = all_venues[venue_index % len(all_venues)]
-                
-                # Check venue constraints
-                if max_matches_per_venue and venue_matches_count[best_venue] >= max_matches_per_venue:
-                    can_schedule = False
-                
-                if day_index - venue_last_used[best_venue] < min_venue_rest_gap + 1:
-                    can_schedule = False
-                
-                if can_schedule:
-                    day_matches.append(match)
-                    venues_used_today[best_venue] += 1
-                    teams_in_current_day.add(team1)
-                    if team2 != "BYE":
-                        teams_in_current_day.add(team2)
-                    
-                    team_matches_per_day[team1] += 1
-                    if team2 != "BYE":
-                        team_matches_per_day[team2] += 1
-                    
-                    team_last_match_day[team1] = day_index
-                    if team2 != "BYE":
-                        team_last_match_day[team2] = day_index
-                    
-                    matchup_last_played[matchup_key] = day_index
-                    venue_last_used[best_venue] = day_index
-                    venue_matches_count[best_venue] += 1
-                    
-                    match['scheduled_venue'] = best_venue
-                else:
-                    remaining_matches.append(match)
-            else:
-                remaining_matches.append(match)
-        
-        # Schedule the matches for this day
-        for match in day_matches:
-            schedule_item = {
-                "match": f"{match['team1']} vs {match['team2']}",
-                "time_slot": current_slot,
-                "venue": match.get('scheduled_venue', all_venues[venue_index % len(all_venues)])
-            }
-            
-            # Add match_id and round if they exist (knockout format)
-            if 'match_id' in match:
-                schedule_item["match_id"] = match['match_id']
-            if 'round' in match:
-                schedule_item["round"] = match['round']
-            
-            schedule.append(schedule_item)
-            venue_index += 1
-        
-        # Reset daily counters for next day
-        if day_index + 1 < len(data.time_slots) or remaining_matches or day_matches:
-            team_matches_per_day.clear()
-        
-        match_queue = remaining_matches
-        
-        # Move to next day
-        if day_matches or match_queue:
-            day_index += 1
-        
-        # Prevent infinite loops
-        if day_index > len(matches) * 10:
-            # Fallback: schedule remaining matches spread across days
-            fallback_day = day_index
-            for match in match_queue:
-                # Generate proper date for fallback
-                if start_date:
-                    fallback_date = start_date + timedelta(days=fallback_day)
-                    slot_idx = fallback_day % len(data.time_slots) if data.time_slots else 0
-                    fallback_slot = f"{fallback_date.strftime('%Y-%m-%d')} - {data.time_slots[slot_idx] if data.time_slots else 'TBD'}"
-                else:
-                    fallback_slot = f"Day {fallback_day + 1}"
-                
-                schedule.append({
-                    "match": f"{match['team1']} vs {match['team2']}",
-                    "time_slot": fallback_slot,
-                    "venue": all_venues[venue_index % len(all_venues)]
-                })
-                venue_index += 1
-                fallback_day += 1  # Spread to different days
-            break
-
-    return schedule

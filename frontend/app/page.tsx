@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTournamentsStore, Tournament } from '@/store/tournaments';
+import { useHasHydrated } from '@/lib/hooks/useHasHydrated';
 
 export default function Home() {
   const router = useRouter();
+  const hasHydrated = useHasHydrated();
   const { tournaments, addTournament, deleteTournament } = useTournamentsStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTournament, setNewTournament] = useState({
@@ -15,17 +17,22 @@ export default function Home() {
 
   const handleCreateTournament = () => {
     if (!newTournament.name.trim()) return;
-    
+
     const id = addTournament({
       name: newTournament.name,
       description: newTournament.description,
       format: 'knockout', // Default format, user selects in scheduler
     });
-    
+
     setShowCreateModal(false);
     setNewTournament({ name: '', description: '' });
     router.push(`/tournaments/${id}`);
   };
+
+  // Prevent hydration mismatch by rendering a neutral state until client-ready
+  if (!hasHydrated) {
+    return <main className="min-h-screen bg-[#0a0a0a]" />;
+  }
 
   // Show landing page when no tournaments
   if (tournaments.length === 0) {
@@ -33,7 +40,7 @@ export default function Home() {
       <main className="min-h-screen bg-[#0a0a0a] text-white">
         {/* Subtle grid background */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
-        
+
         <div className="relative">
           {/* Navigation */}
           <nav className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
@@ -57,15 +64,15 @@ export default function Home() {
               <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
               Now with AI-powered scheduling
             </div>
-            
+
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
               Tournament scheduling,
               <br />
               <span className="text-slate-500">simplified.</span>
             </h1>
-            
+
             <p className="text-lg md:text-xl text-slate-400 max-w-xl mx-auto mb-12 leading-relaxed">
-              From 4 teams to 64. Knockout to round-robin. 
+              From 4 teams to 64. Knockout to round-robin.
               Create professional tournament brackets in under a minute.
             </p>
 
@@ -90,7 +97,7 @@ export default function Home() {
             <div className="relative">
               {/* Glow effect */}
               <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 rounded-3xl blur-xl opacity-50" />
-              
+
               {/* Preview card */}
               <div className="relative bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
                 {/* Browser chrome */}
@@ -104,7 +111,7 @@ export default function Home() {
                     <div className="w-full max-w-md mx-auto h-7 bg-slate-800 rounded-lg" />
                   </div>
                 </div>
-                
+
                 {/* Mock schedule UI */}
                 <div className="p-6 bg-gradient-to-b from-slate-900 to-slate-950">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -150,7 +157,7 @@ export default function Home() {
                   Knockout, round-robin, league, or hybrid. Configure exactly how you want.
                 </p>
               </div>
-              
+
               <div>
                 <div className="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center mb-4">
                   <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +169,7 @@ export default function Home() {
                   AI handles rest days, venue rotation, and travel constraints automatically.
                 </p>
               </div>
-              
+
               <div>
                 <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center mb-4">
                   <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -231,7 +238,7 @@ export default function Home() {
             <div className="bg-[#1a1a1a] border border-slate-800 rounded-2xl p-8 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
               <h2 className="text-xl font-semibold text-white mb-1">New tournament</h2>
               <p className="text-sm text-slate-500 mb-6">Give your tournament a name to get started</p>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-400 mb-2">Name</label>
@@ -344,12 +351,11 @@ export default function Home() {
               </div>
 
               <div className="flex items-center justify-between">
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                  tournament.status === 'draft' ? 'bg-amber-500/10 text-amber-500' :
-                  tournament.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400' :
-                  tournament.status === 'in_progress' ? 'bg-emerald-500/10 text-emerald-400' :
-                  'bg-slate-500/10 text-slate-400'
-                }`}>
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${tournament.status === 'draft' ? 'bg-amber-500/10 text-amber-500' :
+                    tournament.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400' :
+                      tournament.status === 'in_progress' ? 'bg-emerald-500/10 text-emerald-400' :
+                        'bg-slate-500/10 text-slate-400'
+                  }`}>
                   {tournament.status === 'in_progress' ? 'In Progress' : tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
                 </span>
                 <span className="text-xs text-slate-600">
@@ -367,7 +373,7 @@ export default function Home() {
           <div className="bg-[#1a1a1a] border border-slate-800 rounded-2xl p-8 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
             <h2 className="text-xl font-semibold text-white mb-1">New tournament</h2>
             <p className="text-sm text-slate-500 mb-6">Give your tournament a name to get started</p>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Name</label>
@@ -414,4 +420,4 @@ export default function Home() {
     </main>
   );
 }
-           
+
