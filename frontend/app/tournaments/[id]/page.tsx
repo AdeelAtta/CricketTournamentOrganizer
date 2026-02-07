@@ -29,16 +29,20 @@ export default function TournamentDetailPage() {
 
   if (!tournament) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <main className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">🔍</div>
-          <h2 className="text-2xl font-semibold text-white mb-2">Tournament not found</h2>
-          <p className="text-slate-400 mb-6">This tournament may have been deleted</p>
+          <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">Tournament not found</h2>
+          <p className="text-slate-500 text-sm mb-6">This tournament may have been deleted</p>
           <button
             onClick={() => router.push('/')}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all"
+            className="px-6 py-2.5 bg-white text-black font-medium rounded-lg hover:bg-slate-200 transition-colors"
           >
-            Back to Tournaments
+            Back to home
           </button>
         </div>
       </main>
@@ -46,28 +50,31 @@ export default function TournamentDetailPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <main className="min-h-screen bg-[#0a0a0a]">
       {/* Tournament Header */}
-      <div className="bg-slate-800/50 border-b border-slate-700">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
+      <div className="border-b border-slate-900">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-4">
           <button
             onClick={() => router.push('/')}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all"
+            className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
           >
-            ← Back
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
           </button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-white">{tournament.name}</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-semibold text-white truncate">{tournament.name}</h1>
             {tournament.description && (
-              <p className="text-sm text-slate-400">{tournament.description}</p>
+              <p className="text-sm text-slate-500 truncate">{tournament.description}</p>
             )}
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-            tournament.status === 'draft' ? 'bg-yellow-500/20 text-yellow-400' :
-            tournament.status === 'scheduled' ? 'bg-blue-500/20 text-blue-400' :
-            'bg-green-500/20 text-green-400'
+          <span className={`px-2.5 py-1 rounded text-xs font-medium ${
+            tournament.status === 'draft' ? 'bg-amber-500/10 text-amber-500' :
+            tournament.status === 'scheduled' ? 'bg-blue-500/10 text-blue-400' :
+            tournament.status === 'in_progress' ? 'bg-emerald-500/10 text-emerald-400' :
+            'bg-slate-500/10 text-slate-400'
           }`}>
-            {tournament.status.replace('_', ' ').toUpperCase()}
+            {tournament.status === 'in_progress' ? 'In Progress' : tournament.status.charAt(0).toUpperCase() + tournament.status.slice(1)}
           </span>
         </div>
       </div>

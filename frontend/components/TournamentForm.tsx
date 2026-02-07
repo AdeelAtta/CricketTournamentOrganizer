@@ -230,17 +230,17 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
   }, [setFormat, setStartDate, setTeams, setVenues, setTimeSlots, setBlackoutDates, setRestGap, setMaxMatchesPerDay]);
 
   return (
-    <div className="min-h-screen theme-coal p-4 md:p-8">
+    <div className="min-h-screen bg-[#0a0a0a] p-4 md:p-8">
       <div className="max-w-350 mx-auto">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center text-xl shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-lg">
               🏏
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white leading-tight">AI Cricket Scheduler</h1>
-              <p className="text-sm theme-muted">Generate professional cricket tournament schedules in seconds</p>
+              <h1 className="text-xl font-semibold text-white">Schedule Configuration</h1>
+              <p className="text-sm text-slate-500">Configure teams, venues, and constraints</p>
             </div>
           </div>
           
@@ -248,7 +248,7 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
             <button 
               type="button" 
               onClick={clearForm}
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition"
+              className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-white transition"
             >
               Reset
             </button>
@@ -256,58 +256,60 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
               form="tournament-form"
               type="submit"
               disabled={isLoading}
-              className="btn-primary shadow-lg shadow-blue-500/20 px-6 py-2.5 flex items-center gap-2 group transition-all active:scale-95 disabled:opacity-50"
+              className="px-6 py-2.5 bg-white text-black font-medium rounded-lg hover:bg-slate-200 disabled:bg-slate-800 disabled:text-slate-600 transition-all flex items-center gap-2"
             >
               {isLoading ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-slate-400 border-t-black rounded-full animate-spin" />
               ) : (
-                <span className="group-hover:translate-x-0.5 transition-transform">✨</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
               )}
-              {isLoading ? 'Generating...' : 'Generate Schedule'}
+              {isLoading ? 'Generating...' : 'Generate'}
             </button>
           </div>
         </div>
 
         {/* Top Control Bar */}
-        <div className="theme-panel border rounded-2xl p-4 mb-6  z-10 backdrop-blur-xl shadow-2xl">
+        <div className="bg-[#111] border border-slate-800 rounded-xl p-4 mb-6 backdrop-blur-xl">
           <div className="flex flex-wrap items-center gap-16">
             <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-slate-400">FORMAT</span>
-              <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
+              <span className="text-sm font-medium text-slate-500">FORMAT</span>
+              <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800">
                 {(['round_robin', 'knockout'] as const).map((fmt) => (
                   <div key={fmt} className="relative group/tooltip">
                     <button
                       type="button"
                       onClick={() => setFormat(fmt)}
-                      className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
                         format === fmt
-                          ? 'bg-blue-600 text-white shadow-lg'
-                          : 'text-slate-400 hover:text-slate-200'
+                          ? 'bg-white text-black'
+                          : 'text-slate-500 hover:text-white'
                       }`}
                     >
-                      {fmt === 'round_robin' ? 'League Stage' : 'Knockout Stage'}
+                      {fmt === 'round_robin' ? 'League' : 'Knockout'}
                     </button>
                     {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 border border-white/10 text-white text-[10px] rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 pointer-events-none shadow-xl text-center">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#1a1a1a] border border-slate-800 text-white text-[10px] rounded-lg opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-50 pointer-events-none shadow-xl text-center">
                       {fmt === 'round_robin' 
                         ? 'Every team plays every other team once. Points table determines the rank.' 
                         : 'Single elimination bracket. Winners advance, losers go home until the Final.'}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-800" />
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[#1a1a1a]" />
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="h-8 w-px bg-white/10 hidden md:block" />
+            <div className="h-8 w-px bg-slate-800 hidden md:block" />
 
             <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-slate-400">START DATE</span>
+              <span className="text-sm font-medium text-slate-500">START</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
+                className="bg-[#0a0a0a] border border-slate-800 rounded-lg px-4 py-1.5 text-sm text-white focus:outline-none focus:border-slate-600 transition"
               />
             </div>
 
@@ -315,21 +317,24 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
               <button
                 type="button"
                 onClick={() => setShowSettings(!showSettings)}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-xl border transition-all text-sm font-medium ${
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg border transition-all text-sm font-medium ${
                   showSettings 
-                    ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' 
-                    : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                    ? 'bg-white text-black border-white' 
+                    : 'bg-transparent border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
                 }`}
               >
-                <span>⚙️</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
                 <span>Settings</span>
                 <span className={`transition-transform duration-200 ${showSettings ? 'rotate-180' : ''}`}>▾</span>
               </button>
 
               {showSettings && (
-                <div className="absolute top-full left-0 mt-3 w-[350px] theme-panel border rounded-2xl shadow-2xl z-50 p-6 animate-in fade-in zoom-in-95 duration-200 origin-top-left">
+                <div className="absolute top-full left-0 mt-3 w-[350px] bg-[#111] border border-slate-800 rounded-xl shadow-2xl z-50 p-6 animate-in fade-in zoom-in-95 duration-200 origin-top-left">
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-bold text-white">Scheduling Engine</h3>
+                    <h3 className="text-base font-semibold text-white">Scheduling Settings</h3>
                     <button onClick={() => setShowSettings(false)} className="text-slate-500 hover:text-white">×</button>
                   </div>
                   
@@ -474,144 +479,146 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
               )}
             </div>
 
-            <div className="h-8 w-px bg-white/10 hidden md:block" />
+            <div className="h-8 w-px bg-slate-800 hidden md:block" />
 
             <div className="hidden lg:flex items-center gap-3">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Presets</span>
+              <span className="text-xs text-slate-600">Preset:</span>
               <button 
                 type="button"
                 onClick={() => applyPreset('psl_league')} 
-                className="text-xs px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition shadow-lg shadow-blue-500/10 flex items-center gap-2 font-bold"
+                className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition flex items-center gap-2"
               >
-                <span>⚡</span>
-                <span>Fill All (PSL)</span>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                PSL Sample
               </button>
             </div>
           </div>
         </div>
 
         <form id="tournament-form" onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Teams */}
-            <div className="theme-panel border rounded-2xl p-6 shadow-xl flex flex-col">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-[#111] border border-slate-800 rounded-xl p-5 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-bold text-white">Teams</h3>
-                  <p className="text-xs theme-muted">Select participating teams</p>
+                  <h3 className="text-base font-semibold text-white">Teams</h3>
+                  <p className="text-xs text-slate-500">Participating teams</p>
                   {format === 'knockout' && (
-                    <p className="text-[10px] text-blue-400 mt-1 italic animate-pulse">
-                      💡 Tip: Use 2, 4, 8, or 16 for a perfect bracket
+                    <p className="text-[10px] text-blue-400 mt-1">
+                      Use 2, 4, 8, or 16 for a perfect bracket
                     </p>
                   )}
                 </div>
-                <span className={`text-xs px-2.5 py-1 rounded-lg font-bold ${teams.length < 2 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
-                  {teams.length} Added
+                <span className={`text-xs px-2 py-0.5 rounded font-medium ${teams.length < 2 ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                  {teams.length}
                 </span>
               </div>
 
-              <div className="relative mb-6">
+              <div className="relative mb-4">
                 <input
                   type="text"
                   value={teamInput}
                   onChange={(e) => setTeamInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTeam())}
-                  placeholder="Type team name..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition shadow-inner"
+                  placeholder="Team name..."
+                  className="w-full bg-[#0a0a0a] border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-slate-600 transition"
                 />
                 <button 
                   type="button" 
                   onClick={addTeam}
-                  className="absolute right-2 top-2 bottom-2 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition active:scale-95"
+                  className="absolute right-2 top-1.5 bottom-1.5 px-3 bg-white hover:bg-slate-200 text-black rounded-md text-xs font-medium transition"
                 >
                   Add
                 </button>
               </div>
 
-              <div className="flex flex-wrap gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto">
                 {teams.map((team) => (
-                  <div key={team} className="group flex items-center gap-2 bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 px-3 py-1.5 rounded-xl transition-all">
-                    <span className="text-sm text-slate-200">{team}</span>
-                    <button type="button" onClick={() => removeTeam(team)} className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all font-bold">×</button>
+                  <div key={team} className="group flex items-center gap-2 bg-slate-800/50 border border-slate-800 hover:border-slate-700 px-3 py-1.5 rounded-lg transition-colors">
+                    <span className="text-sm text-slate-300">{team}</span>
+                    <button type="button" onClick={() => removeTeam(team)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">×</button>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Stadiums */}
-            <div className="theme-panel border rounded-2xl p-6 shadow-xl flex flex-col">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-[#111] border border-slate-800 rounded-xl p-5 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-bold text-white">Stadiums</h3>
-                  <p className="text-xs theme-muted">Select match locations</p>
+                  <h3 className="text-base font-semibold text-white">Venues</h3>
+                  <p className="text-xs text-slate-500">Match locations</p>
                 </div>
-                <span className={`text-xs px-2.5 py-1 rounded-lg font-bold ${venues.length < 1 ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                  {venues.length} Added
+                <span className={`text-xs px-2 py-0.5 rounded font-medium ${venues.length < 1 ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                  {venues.length}
                 </span>
               </div>
 
-              <div className="relative mb-6">
+              <div className="relative mb-4">
                 <input
                   type="text"
                   value={venueInput}
                   onChange={(e) => setVenueInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addVenue())}
-                  placeholder="Type stadium name..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition shadow-inner"
+                  placeholder="Venue name..."
+                  className="w-full bg-[#0a0a0a] border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-slate-600 transition"
                 />
                 <button 
                   type="button" 
                   onClick={addVenue}
-                  className="absolute right-2 top-2 bottom-2 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition active:scale-95"
+                  className="absolute right-2 top-1.5 bottom-1.5 px-3 bg-white hover:bg-slate-200 text-black rounded-md text-xs font-medium transition"
                 >
                   Add
                 </button>
               </div>
 
-              <div className="flex flex-wrap gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto">
                 {venues.map((venue) => (
-                  <div key={venue} className="group flex items-center gap-2 bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 px-3 py-1.5 rounded-xl transition-all text-sm">
-                    <span className="text-slate-200">{venue}</span>
-                    <button type="button" onClick={() => removeVenue(venue)} className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all font-bold">×</button>
+                  <div key={venue} className="group flex items-center gap-2 bg-slate-800/50 border border-slate-800 hover:border-slate-700 px-3 py-1.5 rounded-lg transition-colors text-sm">
+                    <span className="text-slate-300">{venue}</span>
+                    <button type="button" onClick={() => removeVenue(venue)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">×</button>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Time Slots */}
-            <div className="theme-panel border rounded-2xl p-6 shadow-xl flex flex-col">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-[#111] border border-slate-800 rounded-xl p-5 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-bold text-white">Match Timings</h3>
-                  <p className="text-xs theme-muted">Defining daily play slots</p>
+                  <h3 className="text-base font-semibold text-white">Time Slots</h3>
+                  <p className="text-xs text-slate-500">Daily match timings</p>
                 </div>
-                <span className={`text-xs px-2.5 py-1 rounded-lg font-bold ${timeSlots.length < 1 ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                  {timeSlots.length} Active
+                <span className={`text-xs px-2 py-0.5 rounded font-medium ${timeSlots.length < 1 ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                  {timeSlots.length}
                 </span>
               </div>
                 
-              <div className="relative mb-6">
+              <div className="relative mb-4">
                 <input
                   type="text"
                   value={timeSlotInput}
                   onChange={(e) => setTimeSlotInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTimeSlot())}
                   placeholder="e.g., Morning"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition shadow-inner"
+                  className="w-full bg-[#0a0a0a] border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-slate-600 transition"
                 />
                 <button 
                   type="button" 
                   onClick={addTimeSlot}
-                  className="absolute right-2 top-2 bottom-2 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition active:scale-95"
+                  className="absolute right-2 top-1.5 bottom-1.5 px-3 bg-white hover:bg-slate-200 text-black rounded-md text-xs font-medium transition"
                 >
                   Add
                 </button>
               </div>
 
-              <div className="flex flex-wrap gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto">
                 {timeSlots.map((slot) => (
-                  <div key={slot} className="group flex items-center gap-2 bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 px-3 py-1.5 rounded-xl transition-all text-sm">
-                    <span className="text-slate-200">{slot}</span>
-                    <button type="button" onClick={() => removeTimeSlot(slot)} className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all font-bold">×</button>
+                  <div key={slot} className="group flex items-center gap-2 bg-slate-800/50 border border-slate-800 hover:border-slate-700 px-3 py-1.5 rounded-lg transition-colors text-sm">
+                    <span className="text-slate-300">{slot}</span>
+                    <button type="button" onClick={() => removeTimeSlot(slot)} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">×</button>
                   </div>
                 ))}
               </div>
@@ -619,25 +626,26 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
           </div>
 
           {/* Bottom Info Section */}
-          <div className="space-y-6">
-            <div className="theme-panel border rounded-2xl p-4 bg-blue-500/5 border-blue-500/10 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">ℹ️</div>
-              <div className="text-sm">
-                <span className="text-slate-400">Currently configuring a </span>
-                <span className="text-white font-bold uppercase tracking-tight">{format.replace('_', ' ')}</span>
-                <span className="text-slate-400"> tournament with </span>
-                <span className="text-white font-bold">{teams.length} teams</span>,{' '}
-                <span className="text-white font-bold">{venues.length} stadiums</span>, and{' '}
-                <span className="text-white font-bold">{timeSlots.length} timings</span>
-                <span className="text-slate-400"> starting on </span>
-                <span className="text-white font-bold">{startDate || 'Selection Pending'}</span>.
+          <div className="space-y-4">
+            <div className="bg-[#111] border border-slate-800 rounded-xl p-4 flex items-center gap-4">
+              <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center">
+                <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="text-sm text-slate-400">
+                <span className="text-white font-medium">{format === 'round_robin' ? 'League' : 'Knockout'}</span> format with{' '}
+                <span className="text-white font-medium">{teams.length}</span> teams,{' '}
+                <span className="text-white font-medium">{venues.length}</span> venues,{' '}
+                <span className="text-white font-medium">{timeSlots.length}</span> time slots starting{' '}
+                <span className="text-white font-medium">{startDate || '—'}</span>
               </div>
             </div>
 
             {/* Status Messages */}
             {(error || success) && (
-              <div className={`p-4 rounded-2xl border ${error ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-green-500/10 border-green-500/20 text-green-400'} text-sm flex items-center gap-3 animate-in fade-in slide-in-from-top-2`}>
-                <div className="w-2 h-2 rounded-full animate-pulse bg-current" />
+              <div className={`p-4 rounded-xl border ${error ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'} text-sm flex items-center gap-3`}>
+                <div className="w-1.5 h-1.5 rounded-full bg-current" />
                 {error || success}
               </div>
             )}
@@ -646,10 +654,10 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
 
         {/* Results Pane */}
         {(rawOutput || isLoading || bracketData.length > 0 || scheduledMatches.length > 0) && (
-          <div className="mt-12 pt-12 border-t border-white/5 animate-in fade-in zoom-in-95 duration-500">
-            <div className="flex items-center gap-3 mb-8">
-              <h2 className="text-3xl font-bold text-white">Generated Blueprint</h2>
-              <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+          <div className="mt-12 pt-8 border-t border-slate-800">
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-xl font-semibold text-white">Generated Schedule</h2>
+              <div className="h-px flex-1 bg-slate-800" />
             </div>
             
             {format === 'round_robin' ? (
