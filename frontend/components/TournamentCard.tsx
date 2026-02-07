@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { BracketRound, Match } from '@/types/tournament';
+import KnockoutFlow from './KnockoutFlow';
 
 type Props = {
   bracketData: BracketRound[];
@@ -20,82 +21,75 @@ export default function TournamentCard({ bracketData, scheduledMatches, format, 
 
   return (
     <div className="mt-8">
-      <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-semibold text-white block">🏏 Knockout Bracket</label>
+      <div className="flex items-center justify-between mb-4">
+        <label className="text-xl font-bold text-white flex items-center gap-3">
+          <span className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-sm shadow-lg shadow-blue-500/20">🏆</span>
+          Tournament Bracket
+        </label>
         {format ? (
-          <span className="text-xs px-3 py-1 rounded-full bg-white/6 text-white border border-slate-700">
-            {format === 'round_robin' ? 'League Stage' : format === 'league' ? 'Double League' : format === 'knockout' ? 'Knockout Stage' : format}
+          <span className="text-xs font-bold px-4 py-1.5 rounded-full bg-blue-600/10 text-blue-400 border border-blue-500/20 uppercase tracking-widest">
+            {format === 'knockout' ? 'Knockout Stage' : format}
           </span>
         ) : null}
       </div>
-      <div className="theme-panel border rounded-lg p-4 text-white">
-        {status?.isLoading ? <div className="text-sm theme-muted">Generating...</div> : null}
-        {status?.error ? <div className="text-sm text-red-400 mb-3">{status.error}</div> : null}
-        {status?.success ? <div className="text-sm text-green-400 mb-3">{status.success}</div> : null}
 
-        {(typeof totalRounds !== 'undefined' || typeof totalTeams !== 'undefined') && (
-          <div className="text-xs text-slate-300 mb-3 flex gap-4">
-            {typeof totalRounds !== 'undefined' ? <div>Total rounds: <span className="font-semibold text-slate-100">{totalRounds}</span></div> : null}
-            {typeof totalTeams !== 'undefined' ? <div>Total teams: <span className="font-semibold text-slate-100">{totalTeams}</span></div> : null}
+      <div className="theme-panel border rounded-3xl p-1 text-white bg-slate-900/40 backdrop-blur-xl">
+        {status?.isLoading ? (
+          <div className="p-12 text-center">
+            <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+            <div className="text-sm text-slate-400 font-medium">Architecting Bracket...</div>
+          </div>
+        ) : null}
+        
+        {status?.error ? <div className="p-6 text-sm text-red-400 bg-red-500/5 rounded-2xl m-3 border border-red-500/10">{status.error}</div> : null}
+
+        {!status?.isLoading && bracket && bracket.length > 0 ? (
+          <div className="p-2">
+            <KnockoutFlow bracket={bracket} />
+          </div>
+        ) : !status?.isLoading && (
+          <div className="p-12 text-center text-slate-500 text-sm">
+            No bracket data available. Try generating a schedule.
           </div>
         )}
 
-        <div className="overflow-x-auto py-2">
-          <div className="flex gap-4 items-start">
-            {bracket && bracket.length > 0 ? (
-              bracket.map((round: any) => (
-                <div key={round.round} className="min-w-[260px] theme-card border rounded-lg p-3">
-                  <div className="text-sm font-bold text-white mb-2">Round {round.round} — {round.total_matches} match{round.total_matches !== 1 ? 'es' : ''}</div>
-                  <div className="flex flex-col gap-3">
-                    {round.matches.map((m: any) => (
-                      <div key={`${round.round}-${m.match_id}`} className="theme-card border rounded-md p-3">
-                        <div className="text-sm font-semibold text-white">{m.match}</div>
-                        <div className="text-xs theme-muted mt-1">{m.team1} • {m.team2}</div>
-                        <div className="text-xs theme-muted mt-2">{m.time_slot}</div>
-                        <div className="text-xs theme-muted">{m.venue}</div>
-                        {m.from_matches && (m.from_matches.winner_1 || m.from_matches.winner_2) ? (
-                          <div className="text-xs theme-muted mt-2 italic">From: {m.from_matches.winner_1 || ''}{m.from_matches.winner_1 && m.from_matches.winner_2 ? ' & ' : ''}{m.from_matches.winner_2 || ''}</div>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-sm theme-muted">No bracket data available.</div>
-            )}
+        <div className="p-6 bg-slate-900/50 rounded-b-[22px] border-t border-white/5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm font-bold text-slate-200 uppercase tracking-widest flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              Upcoming Matches
+            </div>
+            <div className="text-[10px] text-slate-500 font-bold uppercase">
+              {scheduled?.length || 0} Matches Total
+            </div>
           </div>
-        </div>
 
-        <div className="mt-6">
-          <div className="text-sm font-semibold text-slate-200 mb-2">📅 Scheduled Matches</div>
-            {scheduled && scheduled.length > 0 ? (
-            <div className="grid gap-3">
-              {scheduled.map((m: any) => (
-                <div key={m.match_id || m.match || `${m.team1}-${m.team2}`} className="theme-card border rounded-md p-3 flex justify-between items-start">
-                  <div>
-                    <div className="text-sm font-semibold text-white">{m.match || `${m.team1} vs ${m.team2}`}</div>
-                    <div className="text-xs theme-muted">{m.time_slot}</div>
-                    <div className="text-xs theme-muted">{m.venue}</div>
+          {scheduled && scheduled.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {scheduled.map((m: any, idx: number) => (
+                <div key={m.match_id || m.match || `${m.team1}-${m.team2}-${idx}`} className="group bg-white/5 border border-white/5 hover:border-blue-500/30 hover:bg-blue-500/5 p-4 rounded-2xl transition-all duration-300">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="text-[10px] font-bold text-blue-500/80 bg-blue-500/10 px-2 py-0.5 rounded-md uppercase tracking-tighter">
+                      Round {m.round || 1}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-medium bg-slate-800 px-2 py-0.5 rounded-md">
+                      {m.venue}
+                    </div>
+                  </div>
+                  <div className="text-sm font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
+                    {m.match || `${m.team1} vs ${m.team2}`}
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+                    <span className="opacity-50">📅</span>
+                    {m.time_slot}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-sm text-slate-400">No scheduled matches yet.</div>
+            <div className="text-sm text-slate-500 italic py-4">No scheduled matches yet.</div>
           )}
         </div>
-{/* 
-        <div className="mt-6">
-          <div className="text-sm font-semibold text-white mb-2">🔽 Raw Output</div>
-          <div className="theme-card border rounded-md p-3">
-            <pre className="whitespace-pre-wrap font-mono text-xs max-h-72 overflow-auto text-white">
-{JSON.stringify(rawOutput ?? {}, null, 2)}
-            </pre>
-          </div>
-        </div> */}
-
-
       </div>
     </div>
   );

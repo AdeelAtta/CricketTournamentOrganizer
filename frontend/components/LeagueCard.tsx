@@ -48,7 +48,9 @@ export default function LeagueCard({ rawOutput, status, format }: Props) {
                       <div key={`${date}-${idx}`} className="theme-card border rounded-md p-3 flex justify-between items-center">
                         <div>
                           <div className="text-sm font-semibold text-white">{m.match}</div>
-                          <div className="text-xs theme-muted">{m.time_slot} • {m.venue}</div>
+                          <div className="text-xs theme-muted">
+                            {m.time_slot.includes(' - ') ? m.time_slot.split(' - ')[1] : m.time_slot} • {m.venue}
+                          </div>
                         </div>
                       </div>
                     ))}

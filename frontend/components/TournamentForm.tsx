@@ -172,49 +172,22 @@ export default function TournamentForm() {
     setRawOutput(null);
   }, [setScheduledMatches, setBracketData, setError, setSuccess, setRawOutput]);
 
-  const applyPreset = useCallback((preset: 'world_cup' | 'local_league' | 'quick_knockout' | 'psl_league') => {
+  const applyPreset = useCallback((preset: 'psl_league') => {
     if (preset === 'psl_league') {
-      setFormat('league');
+      setFormat('knockout');
       setStartDate('2026-02-14');
       setTeams(['Lahore Qalandars', 'Karachi Kings', 'Islamabad United', 'Peshawar Zalmi', 'Multan Sultans', 'Quetta Gladiators']);
       setVenues(['Gaddafi Stadium', 'National Bank Arena', 'Multan Cricket Stadium', 'Pindi Cricket Stadium']);
-      setTimeSlots(['Evening Blast (7 PM)', 'Double Header (2 PM)']);
+      setTimeSlots(['Afternoon (2 PM)', 'Evening Blast (7 PM)']);
       setBlackoutDates([]);
       setRestGap(1);
       setMaxMatchesPerDay(2);
-    } else if (preset === 'world_cup') {
-      setFormat('round_robin');
-      setStartDate('2026-10-05');
-      setTeams(['India', 'Australia', 'England', 'Pakistan', 'South Africa', 'New Zealand', 'Afghanistan', 'Sri Lanka', 'Bangladesh', 'Netherlands']);
-      setVenues(['Wankhede Stadium', 'Narendra Modi Stadium', 'Eden Gardens', 'Chinnaswamy']);
-      setTimeSlots(['Day Match (10 AM)', 'Day/Night (2 PM)']);
-      setBlackoutDates(['2026-10-24']); // Diwali break
-      setRestGap(2);
-      setMaxMatchesPerDay(2);
-    } else if (preset === 'local_league') {
-      setFormat('round_robin');
-      setStartDate('2026-04-01');
-      setTeams(['Club A', 'Club B', 'Club C', 'Club D', 'Club E', 'Club F']);
-      setVenues(['Local Ground 1', 'Local Ground 2']);
-      setTimeSlots(['Morning Slot', 'Afternoon Slot', 'Evening Slot']);
-      setBlackoutDates([]);
-      setRestGap(1);
-      setMaxMatchesPerDay(3);
-    } else {
-      setFormat('knockout');
-      setStartDate('2026-06-12');
-      setTeams(['Team Alpha', 'Team Beta', 'Team Gamma', 'Team Delta']);
-      setVenues(['City Stadium']);
-      setTimeSlots(['Evening Blast']);
-      setBlackoutDates([]);
-      setRestGap(1);
-      setMaxMatchesPerDay(1);
     }
-  }, []);
+  }, [setFormat, setStartDate, setTeams, setVenues, setTimeSlots, setBlackoutDates, setRestGap, setMaxMatchesPerDay]);
 
   return (
     <div className="min-h-screen theme-coal p-4 md:p-8">
-      <div className="max-w-[1400px] mx-auto">
+      <div className="max-w-350 mx-auto">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -253,11 +226,11 @@ export default function TournamentForm() {
 
         {/* Top Control Bar */}
         <div className="theme-panel border rounded-2xl p-4 mb-6  z-10 backdrop-blur-xl shadow-2xl">
-          <div className="flex flex-wrap items-center gap-8">
+          <div className="flex flex-wrap items-center gap-16">
             <div className="flex items-center gap-4">
               <span className="text-sm font-semibold text-slate-400">FORMAT</span>
               <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
-                {(['round_robin', 'league', 'knockout'] as const).map((fmt) => (
+                {(['round_robin', 'knockout'] as const).map((fmt) => (
                   <div key={fmt} className="relative group/tooltip">
                     <button
                       type="button"
