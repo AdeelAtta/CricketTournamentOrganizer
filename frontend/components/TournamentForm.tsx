@@ -225,7 +225,6 @@ export default function TournamentForm({ tournamentId, initialSchedule, initialB
       setFormat('knockout');
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      alert(tomorrow.toISOString().split('T')[0]);
       setStartDate(tomorrow.toISOString().split('T')[0]);
       setTeams(['Lahore Qalandars', 'Karachi Kings', 'Islamabad United', 'Peshawar Zalmi', 'Multan Sultans', 'Quetta Gladiators','Hyderabad','Sialkot']);
       setVenues(['Gaddafi Stadium', 'National Bank Arena', 'Multan Cricket Stadium', 'Pindi Cricket Stadium']);
